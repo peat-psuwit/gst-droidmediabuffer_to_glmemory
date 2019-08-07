@@ -83,9 +83,6 @@ static void gst_droidmediabuffertoglmemory_before_transform (GstBaseTransform *
     trans, GstBuffer * buffer);
 static GstFlowReturn gst_droidmediabuffertoglmemory_transform (GstBaseTransform
     * trans, GstBuffer * inbuf, GstBuffer * outbuf);
-static GstFlowReturn
-gst_droidmediabuffertoglmemory_transform_ip (GstBaseTransform * trans,
-    GstBuffer * buf);
 
 enum
 {
@@ -172,8 +169,6 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_before_transform);
   base_transform_class->transform =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform);
-  base_transform_class->transform_ip =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_ip);
 
 }
 
@@ -299,7 +294,7 @@ gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "decide_allocation");
 
-  return FALSE;
+  return TRUE;
 }
 
 static gboolean
@@ -449,18 +444,6 @@ gst_droidmediabuffertoglmemory_transform (GstBaseTransform * trans,
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform");
-
-  return GST_FLOW_OK;
-}
-
-static GstFlowReturn
-gst_droidmediabuffertoglmemory_transform_ip (GstBaseTransform * trans,
-    GstBuffer * buf)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform_ip");
 
   return GST_FLOW_OK;
 }
