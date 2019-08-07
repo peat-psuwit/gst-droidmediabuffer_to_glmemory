@@ -36,6 +36,8 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstbasetransform.h>
+#include <gst/droid/gstdroidmediabuffer.h>
+
 #include "gstdroidmediabuffertoglmemory.h"
 
 GST_DEBUG_CATEGORY_STATIC (gst_droidmediabuffertoglmemory_debug_category);
@@ -113,8 +115,9 @@ static GstStaticPadTemplate gst_droidmediabuffertoglmemory_sink_template =
 GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("application/unknown")
-    );
+    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE_WITH_FEATURES
+        (GST_CAPS_FEATURE_MEMORY_DROID_MEDIA_BUFFER,
+            GST_DROID_MEDIA_BUFFER_MEMORY_VIDEO_FORMATS)));
 
 
 /* class initialization */
