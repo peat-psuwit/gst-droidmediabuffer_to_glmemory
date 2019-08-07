@@ -59,9 +59,6 @@ gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
     GstQuery * query);
 static gboolean gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform *
     trans, GstQuery * query, GType api, const GstStructure * params);
-static gboolean
-gst_droidmediabuffertoglmemory_propose_allocation (GstBaseTransform * trans,
-    GstQuery * decide_query, GstQuery * query);
 static gboolean gst_droidmediabuffertoglmemory_transform_size (GstBaseTransform
     * trans, GstPadDirection direction, GstCaps * caps, gsize size,
     GstCaps * othercaps, gsize * othersize);
@@ -149,8 +146,6 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_decide_allocation);
   base_transform_class->filter_meta =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_filter_meta);
-  base_transform_class->propose_allocation =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_propose_allocation);
   base_transform_class->transform_size =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_size);
   base_transform_class->get_unit_size =
@@ -265,19 +260,6 @@ gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform * trans,
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "filter_meta");
-
-  return TRUE;
-}
-
-/* propose allocation query parameters for input buffers */
-static gboolean
-gst_droidmediabuffertoglmemory_propose_allocation (GstBaseTransform * trans,
-    GstQuery * decide_query, GstQuery * query)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "propose_allocation");
 
   return TRUE;
 }
