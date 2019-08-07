@@ -52,7 +52,7 @@ static gboolean
 plugin_init (GstPlugin * plugin)
 {
   gst_element_register (plugin, "droidmediabuffertoglmemory", GST_RANK_NONE,
-      GST_TYPE_DROIDMEDIABUFFER_TO_GLMEMORY);
+      GST_TYPE_DROIDMEDIABUFFERTOGLMEMORY);
 
   return TRUE;
 }
