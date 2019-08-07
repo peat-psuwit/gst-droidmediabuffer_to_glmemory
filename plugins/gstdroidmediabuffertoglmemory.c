@@ -36,6 +36,7 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstbasetransform.h>
+#include <gst/gl/gstglmemory.h>
 #include <gst/droid/gstdroidmediabuffer.h>
 
 #include "gstdroidmediabuffertoglmemory.h"
@@ -108,7 +109,10 @@ static GstStaticPadTemplate gst_droidmediabuffertoglmemory_src_template =
 GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("application/unknown")
+    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE_WITH_FEATURES
+        (GST_CAPS_FEATURE_MEMORY_GL_MEMORY, "{ RGBA }") // XXX: is "RGBA" correct?
+        ", texture-target = (string) { external-oes }"
+        )
     );
 
 static GstStaticPadTemplate gst_droidmediabuffertoglmemory_sink_template =
