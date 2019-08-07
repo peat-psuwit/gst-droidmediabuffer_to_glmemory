@@ -36,6 +36,7 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstbasetransform.h>
+#include <gst/gl/gstglutils.h>
 #include <gst/gl/gstglmemory.h>
 #include <gst/allocators/gstdroidmediabuffer.h>
 
@@ -53,6 +54,9 @@ static void gst_droidmediabuffertoglmemory_get_property (GObject * object,
     guint property_id, GValue * value, GParamSpec * pspec);
 static void gst_droidmediabuffertoglmemory_dispose (GObject * object);
 static void gst_droidmediabuffertoglmemory_finalize (GObject * object);
+
+static void gst_droidmediabuffertoglmemory_set_context (GstElement * element,
+    GstContext * context);
 
 static GstCaps *gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform
     * trans, GstPadDirection direction, GstCaps * caps, GstCaps * filter);
@@ -123,6 +127,7 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
     klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+  GstElementClass *gstelement_class = (GstElementClass *) klass;
   GstBaseTransformClass *base_transform_class =
       GST_BASE_TRANSFORM_CLASS (klass);
 
@@ -141,6 +146,8 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
   gobject_class->get_property = gst_droidmediabuffertoglmemory_get_property;
   gobject_class->dispose = gst_droidmediabuffertoglmemory_dispose;
   gobject_class->finalize = gst_droidmediabuffertoglmemory_finalize;
+  gstelement_class->set_context = 
+      GST_DEBUG_FUNCPTR(gst_droidmediabuffertoglmemory_set_context);
   base_transform_class->transform_caps =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_caps);
   base_transform_class->decide_allocation =
@@ -176,6 +183,9 @@ static void
 gst_droidmediabuffertoglmemory_init (GstDroidmediabuffertoglmemory *
     droidmediabuffertoglmemory)
 {
+  droidmediabuffertoglmemory->display = NULL;
+  droidmediabuffertoglmemory->context = NULL;
+  droidmediabuffertoglmemory->other_context = NULL;
 }
 
 void
@@ -236,6 +246,28 @@ gst_droidmediabuffertoglmemory_finalize (GObject * object)
 
   G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
       finalize (object);
+}
+
+static void
+gst_droidmediabuffertoglmemory_set_context (GstElement * element, GstContext * context)
+{
+  // Pretty much copied from gstglimagesink.c
+
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (element);
+
+  gst_gl_handle_set_context (element, context,
+          &droidmediabuffertoglmemory->display,
+          &droidmediabuffertoglmemory->other_context
+  );
+
+  // TODO: Is this needed?
+  #if 0
+  if (droidmediabuffertoglmemory->display)
+    gst_gl_display_filter_gl_api (droidmediabuffertoglmemory->display, SUPPORTED_GL_APIS);
+  #endif
+
+  GST_ELEMENT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->set_context (element, context);
 }
 
 static GstCaps *
