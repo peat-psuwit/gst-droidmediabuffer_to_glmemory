@@ -37,7 +37,7 @@
 #include <gst/gst.h>
 #include <gst/base/gstbasetransform.h>
 #include <gst/gl/gstglmemory.h>
-#include <gst/droid/gstdroidmediabuffer.h>
+#include <gst/allocators/gstdroidmediabuffer.h>
 
 #include "gstdroidmediabuffertoglmemory.h"
 
