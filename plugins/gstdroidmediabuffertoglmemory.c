@@ -54,14 +54,6 @@ static void gst_droidmediabuffertoglmemory_get_property (GObject * object,
 static void gst_droidmediabuffertoglmemory_dispose (GObject * object);
 static void gst_droidmediabuffertoglmemory_finalize (GObject * object);
 
-static GstCaps *gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform
-    * trans, GstPadDirection direction, GstCaps * caps, GstCaps * filter);
-static GstCaps *gst_droidmediabuffertoglmemory_fixate_caps (GstBaseTransform *
-    trans, GstPadDirection direction, GstCaps * caps, GstCaps * othercaps);
-static gboolean gst_droidmediabuffertoglmemory_accept_caps (GstBaseTransform *
-    trans, GstPadDirection direction, GstCaps * caps);
-static gboolean gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform *
-    trans, GstCaps * incaps, GstCaps * outcaps);
 static gboolean gst_droidmediabuffertoglmemory_query (GstBaseTransform * trans,
     GstPadDirection direction, GstQuery * query);
 static gboolean
@@ -155,14 +147,6 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
   gobject_class->get_property = gst_droidmediabuffertoglmemory_get_property;
   gobject_class->dispose = gst_droidmediabuffertoglmemory_dispose;
   gobject_class->finalize = gst_droidmediabuffertoglmemory_finalize;
-  base_transform_class->transform_caps =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_caps);
-  base_transform_class->fixate_caps =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_fixate_caps);
-  base_transform_class->accept_caps =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_accept_caps);
-  base_transform_class->set_caps =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_caps);
   base_transform_class->query =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_query);
   base_transform_class->decide_allocation =
@@ -262,76 +246,6 @@ gst_droidmediabuffertoglmemory_finalize (GObject * object)
 
   G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
       finalize (object);
-}
-
-static GstCaps *
-gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps, GstCaps * filter)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-  GstCaps *othercaps;
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform_caps");
-
-  othercaps = gst_caps_copy (caps);
-
-  /* Copy other caps and modify as appropriate */
-  /* This works for the simplest cases, where the transform modifies one
-   * or more fields in the caps structure.  It does not work correctly
-   * if passthrough caps are preferred. */
-  if (direction == GST_PAD_SRC) {
-    /* transform caps going upstream */
-  } else {
-    /* transform caps going downstream */
-  }
-
-  if (filter) {
-    GstCaps *intersect;
-
-    intersect = gst_caps_intersect (othercaps, filter);
-    gst_caps_unref (othercaps);
-
-    return intersect;
-  } else {
-    return othercaps;
-  }
-}
-
-static GstCaps *
-gst_droidmediabuffertoglmemory_fixate_caps (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps, GstCaps * othercaps)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "fixate_caps");
-
-  return NULL;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_accept_caps (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "accept_caps");
-
-  return TRUE;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
-    GstCaps * incaps, GstCaps * outcaps)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "set_caps");
-
-  return TRUE;
 }
 
 static gboolean
