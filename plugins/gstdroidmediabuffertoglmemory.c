@@ -316,6 +316,71 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
   }
 }
 
+static gboolean
+_ensure_gl_context (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory)
+{
+  // Pretty much copied from gstglimagesink.c, but only for context part.
+  GError *error = NULL;
+
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "Ensuring GL context");
+
+  if (!droidmediabuffertoglmemory->context) {
+    GST_OBJECT_LOCK (droidmediabuffertoglmemory->display);
+    do {
+      GstGLContext *other_context = NULL;
+
+      if (droidmediabuffertoglmemory->context) {
+        gst_object_unref (droidmediabuffertoglmemory->context);
+        droidmediabuffertoglmemory->context = NULL;
+      }
+
+      GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+          "No current context, creating one for %" GST_PTR_FORMAT,
+          droidmediabuffertoglmemory->display);
+
+      if (droidmediabuffertoglmemory->other_context) {
+        other_context =
+            gst_object_ref (droidmediabuffertoglmemory->other_context);
+      } else {
+        other_context =
+            gst_gl_display_get_gl_context_for_thread
+            (droidmediabuffertoglmemory->display, NULL);
+      }
+
+      if (!gst_gl_display_create_context (droidmediabuffertoglmemory->display,
+              other_context, &droidmediabuffertoglmemory->context, &error)) {
+        if (other_context)
+          gst_object_unref (other_context);
+        GST_OBJECT_UNLOCK (droidmediabuffertoglmemory->display);
+        goto context_error;
+      }
+
+      GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+          "created context %" GST_PTR_FORMAT " from other context %"
+          GST_PTR_FORMAT, droidmediabuffertoglmemory->context,
+          droidmediabuffertoglmemory->other_context);
+    } while (!gst_gl_display_add_context (droidmediabuffertoglmemory->display,
+            droidmediabuffertoglmemory->context));
+    GST_OBJECT_UNLOCK (droidmediabuffertoglmemory->display);
+  }
+  return TRUE;
+
+context_error:
+  {
+    GST_ELEMENT_ERROR (droidmediabuffertoglmemory, RESOURCE, NOT_FOUND, ("%s",
+            error->message), (NULL));
+
+    if (droidmediabuffertoglmemory->context) {
+      gst_object_unref (droidmediabuffertoglmemory->context);
+      droidmediabuffertoglmemory->context = NULL;
+    }
+
+    g_clear_error (&error);
+
+    return FALSE;
+  }
+}
+
 /* decide allocation query for output buffers */
 static gboolean
 gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
