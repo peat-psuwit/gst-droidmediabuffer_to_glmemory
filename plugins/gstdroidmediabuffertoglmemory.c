@@ -56,12 +56,6 @@ static void gst_droidmediabuffertoglmemory_finalize (GObject * object);
 
 static GstCaps *gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform
     * trans, GstPadDirection direction, GstCaps * caps, GstCaps * filter);
-static GstCaps *gst_droidmediabuffertoglmemory_fixate_caps (GstBaseTransform *
-    trans, GstPadDirection direction, GstCaps * caps, GstCaps * othercaps);
-static gboolean gst_droidmediabuffertoglmemory_accept_caps (GstBaseTransform *
-    trans, GstPadDirection direction, GstCaps * caps);
-static gboolean gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform *
-    trans, GstCaps * incaps, GstCaps * outcaps);
 static gboolean
 gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
     GstQuery * query);
@@ -152,12 +146,6 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
   gobject_class->finalize = gst_droidmediabuffertoglmemory_finalize;
   base_transform_class->transform_caps =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_caps);
-  base_transform_class->fixate_caps =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_fixate_caps);
-  base_transform_class->accept_caps =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_accept_caps);
-  base_transform_class->set_caps =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_caps);
   base_transform_class->decide_allocation =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_decide_allocation);
   base_transform_class->filter_meta =
@@ -301,42 +289,6 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
   }
 }
 
-static GstCaps *
-gst_droidmediabuffertoglmemory_fixate_caps (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps, GstCaps * othercaps)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "fixate_caps");
-
-  return NULL;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_accept_caps (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "accept_caps");
-
-  return TRUE;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
-    GstCaps * incaps, GstCaps * outcaps)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "set_caps");
-
-  return TRUE;
-}
-
 /* decide allocation query for output buffers */
 static gboolean
 gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
@@ -347,7 +299,7 @@ gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "decide_allocation");
 
-  return TRUE;
+  return FALSE;
 }
 
 static gboolean
