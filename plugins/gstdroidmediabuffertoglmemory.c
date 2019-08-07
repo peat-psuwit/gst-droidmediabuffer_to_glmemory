@@ -54,8 +54,6 @@ static void gst_droidmediabuffertoglmemory_get_property (GObject * object,
 static void gst_droidmediabuffertoglmemory_dispose (GObject * object);
 static void gst_droidmediabuffertoglmemory_finalize (GObject * object);
 
-static gboolean gst_droidmediabuffertoglmemory_query (GstBaseTransform * trans,
-    GstPadDirection direction, GstQuery * query);
 static gboolean
 gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
     GstQuery * query);
@@ -147,8 +145,6 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
   gobject_class->get_property = gst_droidmediabuffertoglmemory_get_property;
   gobject_class->dispose = gst_droidmediabuffertoglmemory_dispose;
   gobject_class->finalize = gst_droidmediabuffertoglmemory_finalize;
-  base_transform_class->query =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_query);
   base_transform_class->decide_allocation =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_decide_allocation);
   base_transform_class->filter_meta =
@@ -246,18 +242,6 @@ gst_droidmediabuffertoglmemory_finalize (GObject * object)
 
   G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
       finalize (object);
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_query (GstBaseTransform * trans,
-    GstPadDirection direction, GstQuery * query)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "query");
-
-  return TRUE;
 }
 
 /* decide allocation query for output buffers */
