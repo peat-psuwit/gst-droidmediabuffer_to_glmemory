@@ -61,6 +61,13 @@ PKG_CHECK_MODULES(GST, [
   ])
 ])
 
+PKG_CHECK_MODULES(GSTDROID, [
+  gstreamer-droid-1.0
+], [
+  AC_SUBST([GSTDROID_CFLAGS])
+  AC_SUBST([GSTDROID_LIBS])
+])
+
 dnl check if compiler understands -Wall (if yes, add -Wall to GST_CFLAGS)
 AC_MSG_CHECKING([to see if compiler understands -Wall])
 save_CFLAGS="$CFLAGS"
