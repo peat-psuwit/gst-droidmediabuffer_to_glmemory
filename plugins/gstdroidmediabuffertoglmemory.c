@@ -265,16 +265,28 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform_caps");
 
-  othercaps = gst_caps_copy (caps);
-
-  /* Copy other caps and modify as appropriate */
-  /* This works for the simplest cases, where the transform modifies one
-   * or more fields in the caps structure.  It does not work correctly
-   * if passthrough caps are preferred. */
   if (direction == GST_PAD_SRC) {
     /* transform caps going upstream */
+
+    // I don't want to deal with it. Pad template should be enough.
+    othercaps = gst_caps_new_any();
   } else {
     /* transform caps going downstream */
+
+    othercaps = gst_caps_copy (caps);
+
+    // Replace the feature with GLMemory & set color-format to RGBA
+    // Also set texture-target
+    GstCapsFeatures * glmemoryfeat = gst_caps_features_new(
+        GST_CAPS_FEATURE_MEMORY_GL_MEMORY,
+        NULL
+    );
+    gst_caps_set_features(othercaps, /* index (XXX: other index?) */ 0, glmemoryfeat);
+    
+    gst_caps_set_simple(othercaps,
+                            "format", G_TYPE_STRING, "RGBA",
+                            "texture-target", G_TYPE_STRING, "external-oes",
+                            NULL);
   }
 
   if (filter) {
