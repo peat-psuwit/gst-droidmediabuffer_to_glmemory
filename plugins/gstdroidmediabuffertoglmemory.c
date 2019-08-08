@@ -592,7 +592,9 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
       (EGLDisplay) gst_gl_display_get_handle (GST_GL_DISPLAY (display_egl));
   gst_object_unref (display_egl);
 
-  if (!droidmediabuffertoglmemory->eglDestroyImageKHR (egl_display, image)) {
+  EGLImageKHR egl_image = (EGLImageKHR) gst_egl_image_get_image(image);
+
+  if (!droidmediabuffertoglmemory->eglDestroyImageKHR (egl_display, egl_image)) {
     GST_WARNING_OBJECT (droidmediabuffertoglmemory,
         "eglDestroyImageKHR failed: %s. EGLImage may leak.",
         gst_egl_get_error_string (eglGetError ()));
