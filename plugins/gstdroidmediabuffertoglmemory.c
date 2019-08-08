@@ -38,6 +38,8 @@
 #include <gst/base/gstbasetransform.h>
 #include <gst/gl/gstglutils.h>
 #include <gst/gl/gstglmemory.h>
+#include <gst/gl/egl/gstegl.h>
+#include <gst/gl/egl/gstglmemoryegl.h>
 #include <gst/allocators/gstdroidmediabuffer.h>
 
 #include "gstdroidmediabuffertoglmemory.h"
@@ -186,6 +188,9 @@ gst_droidmediabuffertoglmemory_init (GstDroidmediabuffertoglmemory *
   droidmediabuffertoglmemory->display = NULL;
   droidmediabuffertoglmemory->context = NULL;
   droidmediabuffertoglmemory->other_context = NULL;
+
+  droidmediabuffertoglmemory->eglCreateImageKHR = NULL;
+  droidmediabuffertoglmemory->eglDestroyImageKHR = NULL;
 }
 
 void
@@ -432,6 +437,32 @@ context_error:
   }
 }
 
+static gboolean
+_populate_egl_proc (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory)
+{
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "populate egl proc");
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglCreateImageKHR)) {
+    droidmediabuffertoglmemory->eglCreateImageKHR =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "eglCreateImageKHR");
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglCreateImageKHR)) {
+    return FALSE;
+  }
+
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglDestroyImageKHR)) {
+    droidmediabuffertoglmemory->eglDestroyImageKHR =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "eglDestroyImageKHR");
+
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglDestroyImageKHR)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 /* states */
 static gboolean
 gst_droidmediabuffertoglmemory_start (GstBaseTransform * trans)
@@ -440,6 +471,24 @@ gst_droidmediabuffertoglmemory_start (GstBaseTransform * trans)
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "start");
+
+  if (!gst_gl_ensure_element_data (droidmediabuffertoglmemory,
+          &droidmediabuffertoglmemory->display,
+          &droidmediabuffertoglmemory->other_context)) {
+    return FALSE;
+  }
+
+  if (!_ensure_gl_context (droidmediabuffertoglmemory)) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to ensure EGL context");
+    return FALSE;
+  }
+
+  if (!_populate_egl_proc (droidmediabuffertoglmemory)) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to populate required EGL functions");
+    return FALSE;
+  }
 
   return TRUE;
 }
@@ -484,6 +533,99 @@ gst_droidmediabuffertoglmemory_src_event (GstBaseTransform * trans,
       src_event (trans, event);
 }
 
+static GstMemory *
+_get_droid_media_buffer_memory (GstDroidmediabuffertoglmemory *
+    droidmediabuffertoglmemory, GstBuffer * buffer)
+{
+  // Copied from droideglsink.c
+  int x, num;
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+      "get droid media buffer memory");
+  num = gst_buffer_n_memory (buffer);
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "examining %d memory items",
+      num);
+  for (x = 0; x < num; x++) {
+    GstMemory *mem = gst_buffer_peek_memory (buffer, x);
+    if (mem && gst_memory_is_type (mem, GST_ALLOCATOR_DROID_MEDIA_BUFFER)) {
+      return mem;
+    }
+  }
+  return NULL;
+}
+
+static void
+_destroy_egl_image (GstEGLImage * image, gpointer user_data)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (user_data);
+
+  EGLDisplay egl_display = EGL_DEFAULT_DISPLAY;
+  GstGLDisplayEGL *display_egl;
+
+  display_egl =
+      gst_gl_display_egl_from_gl_display (droidmediabuffertoglmemory->display);
+  if (!display_egl) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "Failed to retrieve GstGLDisplayEGL from %" GST_PTR_FORMAT,
+        image->context->display);
+    return;
+  }
+  egl_display =
+      (EGLDisplay) gst_gl_display_get_handle (GST_GL_DISPLAY (display_egl));
+  gst_object_unref (display_egl);
+
+  if (!droidmediabuffertoglmemory->eglDestroyImageKHR (egl_display, image)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "eglDestroyImageKHR failed: %s. EGLImage may leak.",
+        gst_egl_get_error_string (eglGetError ()));
+  }
+}
+
+static GstEGLImage *
+_create_egl_image (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory,
+    GstMemory * droidmem)
+{
+  EGLDisplay egl_display = EGL_DEFAULT_DISPLAY;
+  EGLImageKHR img = EGL_NO_IMAGE_KHR;
+  GstGLDisplayEGL *display_egl;
+  // Copied from droideglsink.c. Not sure why.
+  EGLint eglImgAttrs[] =
+      { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
+
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+      "creating GstEGLImage from DroidMediaBufferMemory");
+
+  // This part comes from gsteglimage.c
+  display_egl =
+      gst_gl_display_egl_from_gl_display (droidmediabuffertoglmemory->display);
+  if (!display_egl) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "Failed to retrieve GstGLDisplayEGL from %" GST_PTR_FORMAT,
+        droidmediabuffertoglmemory->display);
+    return NULL;
+  }
+  egl_display =
+      (EGLDisplay) gst_gl_display_get_handle (GST_GL_DISPLAY (display_egl));
+  gst_object_unref (display_egl);
+
+  img = droidmediabuffertoglmemory->eglCreateImageKHR (egl_display,
+      EGL_NO_CONTEXT,
+      EGL_NATIVE_BUFFER_ANDROID,
+      (EGLClientBuffer) gst_droid_media_buffer_memory_get_buffer (droidmem),
+      eglImgAttrs);
+
+  if (img == EGL_NO_IMAGE_KHR) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "eglCreateImageKHR failed: %s",
+        gst_egl_get_error_string (eglGetError ()));
+    return NULL;
+  }
+
+  return gst_egl_image_new_wrapped (droidmediabuffertoglmemory->context,
+      img, GST_GL_RGBA /* ??? */ , droidmediabuffertoglmemory,
+      _destroy_egl_image);
+}
+
 static GstFlowReturn
 gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
     GstBuffer * input, GstBuffer ** outbuf)
@@ -492,6 +634,60 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "prepare_output_buffer");
+
+  // Majority of transformation is done here
+
+  // From gstgloverlaycompositor.c
+  GstVideoInfo vinfo;
+  GstVideoMeta *vmeta;
+
+  vmeta = gst_buffer_get_video_meta (input);
+  gst_video_info_set_format (&vinfo, vmeta->format, vmeta->width,
+      vmeta->height);
+  vinfo.stride[0] = vmeta->stride[0];
+
+  GstMemory *droidmem =
+      _get_droid_media_buffer_memory (droidmediabuffertoglmemory, input);
+
+  if (!droidmem) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "buffer is not DroidMediaBufferMemory");
+    return GST_FLOW_NOT_NEGOTIATED;
+  }
+
+  GstEGLImage *image = _create_egl_image (droidmediabuffertoglmemory, droidmem);
+
+  if (!image) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to create GstEGLImage.");
+    return GST_FLOW_ERROR;
+  }
+
+  GstGLBaseMemoryAllocator *allocator =
+      GST_GL_BASE_MEMORY_ALLOCATOR (gst_allocator_find
+      (GST_GL_MEMORY_EGL_ALLOCATOR_NAME));
+
+  GstGLVideoAllocationParams *alloc_params =
+      gst_gl_video_allocation_params_new_wrapped_gl_handle
+      (droidmediabuffertoglmemory->context,
+      /* parent alloc_params */ NULL,
+      &vinfo,
+      /* plane (???) */ 0,
+      /* valign (???) */ NULL,
+      GST_GL_TEXTURE_TARGET_2D, // GstGlMemoryEgl supports only this. XXX: will it work?
+      /* tex_format */ GST_GL_RGBA,
+      image,
+      image,                    /* Use destroy notification to unref the image. Hopefully this is correct. */
+      (GDestroyNotify) gst_egl_image_unref);
+
+  GstGLBaseMemory *glmem = gst_gl_base_memory_alloc (allocator,
+      (GstGLAllocationParams *) alloc_params);
+
+  gst_gl_allocation_params_free ((GstGLAllocationParams *) alloc_params);
+  gst_object_unref (allocator);
+
+  *outbuf = gst_buffer_new ();
+  gst_buffer_append_memory (*outbuf, GST_MEMORY_CAST (glmem));
 
   return GST_FLOW_OK;
 }
