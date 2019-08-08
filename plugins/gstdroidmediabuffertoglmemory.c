@@ -577,6 +577,8 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
   GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
       GST_DROIDMEDIABUFFERTOGLMEMORY (user_data);
 
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "destroy GstEGLImage %p", image);
+
   EGLDisplay egl_display = EGL_DEFAULT_DISPLAY;
   GstGLDisplayEGL *display_egl;
 
@@ -641,9 +643,15 @@ _create_egl_image (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory,
     return NULL;
   }
 
-  return gst_egl_image_new_wrapped (droidmediabuffertoglmemory->context,
+  GstEGLImage *image_gst =
+      gst_egl_image_new_wrapped (droidmediabuffertoglmemory->context,
       img, GST_GL_RGBA /* ??? */ , droidmediabuffertoglmemory,
       _destroy_egl_image);
+
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "created (GstEGLImage) %p",
+      image_gst);
+
+  return image_gst;
 }
 
 static GstFlowReturn
