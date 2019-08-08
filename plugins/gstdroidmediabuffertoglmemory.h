@@ -26,6 +26,9 @@
 #include <gst/gl/gstgldisplay.h>
 #include <gst/gl/gstglcontext.h>
 
+#include <EGL/egl.h>
+#include <EGL/eglext.h>
+
 G_BEGIN_DECLS
 #define GST_TYPE_DROIDMEDIABUFFERTOGLMEMORY   (gst_droidmediabuffertoglmemory_get_type())
 #define GST_DROIDMEDIABUFFERTOGLMEMORY(obj)   (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_DROIDMEDIABUFFERTOGLMEMORY,GstDroidmediabuffertoglmemory))
@@ -45,6 +48,10 @@ struct _GstDroidmediabuffertoglmemory
   GstGLDisplay *display;
   GstGLContext *context;
   GstGLContext *other_context;
+
+    EGLImageKHR (*eglCreateImageKHR) (EGLDisplay dpy, EGLContext ctx,
+      EGLenum target, EGLClientBuffer buffer, const EGLint * attrib_list);
+    EGLBoolean (*eglDestroyImageKHR) (EGLDisplay dpy, EGLImageKHR image);
 };
 
 struct _GstDroidmediabuffertoglmemoryClass

@@ -271,8 +271,8 @@ gst_droidmediabuffertoglmemory_set_context (GstElement * element,
         SUPPORTED_GL_APIS);
 #endif
 
-  GST_ELEMENT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
-      set_context (element, context);
+  GST_ELEMENT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->set_context
+      (element, context);
 }
 
 static GstCaps *
@@ -327,7 +327,8 @@ gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
   GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
-  if (!gst_video_info_from_caps (&droidmediabuffertoglmemory->out_vinfo, outcaps)) {
+  if (!gst_video_info_from_caps (&droidmediabuffertoglmemory->out_vinfo,
+          outcaps)) {
     return FALSE;
   }
 
@@ -450,6 +451,32 @@ context_error:
   }
 }
 
+static gboolean
+_populate_egl_proc (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory)
+{
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "populate egl proc");
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglCreateImageKHR)) {
+    droidmediabuffertoglmemory->eglCreateImageKHR =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "eglCreateImageKHR");
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglCreateImageKHR)) {
+    return FALSE;
+  }
+
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglDestroyImageKHR)) {
+    droidmediabuffertoglmemory->eglDestroyImageKHR =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "eglDestroyImageKHR");
+
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglDestroyImageKHR)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
 /* states */
 static gboolean
 gst_droidmediabuffertoglmemory_start (GstBaseTransform * trans)
@@ -458,6 +485,24 @@ gst_droidmediabuffertoglmemory_start (GstBaseTransform * trans)
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "start");
+
+  if (!gst_gl_ensure_element_data (droidmediabuffertoglmemory,
+          &droidmediabuffertoglmemory->display,
+          &droidmediabuffertoglmemory->other_context)) {
+    return FALSE;
+  }
+
+  if (!_ensure_gl_context (droidmediabuffertoglmemory)) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to ensure EGL context");
+    return FALSE;
+  }
+
+  if (!_populate_egl_proc (droidmediabuffertoglmemory)) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to populate required EGL functions");
+    return FALSE;
+  }
 
   return TRUE;
 }
