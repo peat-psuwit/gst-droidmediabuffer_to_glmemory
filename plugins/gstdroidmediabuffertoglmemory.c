@@ -38,6 +38,7 @@
 #include <gst/base/gstbasetransform.h>
 #include <gst/gl/gstglutils.h>
 #include <gst/gl/gstglmemory.h>
+#include <gst/gl/gstglbufferpool.h>
 #include <gst/allocators/gstdroidmediabuffer.h>
 
 #include "gstdroidmediabuffertoglmemory.h"
@@ -344,6 +345,35 @@ gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "decide_allocation");
+
+  GstGLBaseMemoryAllocator *allocator =
+      GST_GL_BASE_MEMORY_ALLOCATOR (gst_allocator_find
+      (GST_GL_MEMORY_ALLOCATOR_NAME));
+
+  GstGLVideoAllocationParams *alloc_params =
+      gst_gl_video_allocation_params_new (droidmediabuffertoglmemory->context,
+      /* parent alloc_params */ NULL,
+      &droidmediabuffertoglmemory->out_vinfo,
+      /* plane (???) */ 0,
+      /* valign (???) */ NULL,
+      GST_GL_TEXTURE_TARGET_EXTERNAL_OES,
+      /* tex_format, doesn't matter for external-oes */ 0
+      );
+
+  gst_query_add_allocation_param (query, allocator, alloc_params);
+
+  GstBufferPool *pool =
+      gst_gl_buffer_pool_new (droidmediabuffertoglmemory->context);
+
+  gst_query_add_allocation_pool (query, GST_BUFFER_POOL (pool),
+      /* size (???, good luck!) */ 0,
+      /* min_buffers */ 0,
+      /* max_buffers */ 2);
+
+  /* gst_add_* above doesn't take ownership of objects. Thus unref/free here */
+  gst_gl_allocation_params_free ((GstGLAllocationParams *) alloc_params);
+  gst_object_unref (allocator);
+  gst_object_unref (pool);
 
   return TRUE;
 }
