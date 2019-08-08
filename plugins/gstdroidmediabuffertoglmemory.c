@@ -685,7 +685,7 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
       &droidmediabuffertoglmemory->out_vinfo,
       /* plane (???) */ 0,
       /* valign (???) */ NULL,
-      GST_GL_TEXTURE_TARGET_2D, // GstGlMemoryEgl supports only this. XXX: will it work?
+      GST_GL_TEXTURE_TARGET_EXTERNAL_OES,
       /* tex_format */ GST_GL_RGBA,
       image,
       image,                    /* Use destroy notification to unref the image. Hopefully this is correct. */
