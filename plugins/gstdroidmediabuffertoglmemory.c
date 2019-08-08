@@ -99,10 +99,8 @@ static GstStaticPadTemplate gst_droidmediabuffertoglmemory_src_template =
 GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE_WITH_FEATURES
-        (GST_CAPS_FEATURE_MEMORY_GL_MEMORY, "{ RGBA }") // XXX: is "RGBA" correct?
-        ", texture-target = (string) { external-oes }"
-        )
+    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE_WITH_FEATURES (GST_CAPS_FEATURE_MEMORY_GL_MEMORY, "{ RGBA }")  // XXX: is "RGBA" correct?
+        ", texture-target = (string) { external-oes }")
     );
 
 static GstStaticPadTemplate gst_droidmediabuffertoglmemory_sink_template =
@@ -146,8 +144,8 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
   gobject_class->get_property = gst_droidmediabuffertoglmemory_get_property;
   gobject_class->dispose = gst_droidmediabuffertoglmemory_dispose;
   gobject_class->finalize = gst_droidmediabuffertoglmemory_finalize;
-  gstelement_class->set_context = 
-      GST_DEBUG_FUNCPTR(gst_droidmediabuffertoglmemory_set_context);
+  gstelement_class->set_context =
+      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_context);
   base_transform_class->transform_caps =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_caps);
   base_transform_class->decide_allocation =
@@ -230,8 +228,8 @@ gst_droidmediabuffertoglmemory_dispose (GObject * object)
 
   /* clean up as possible.  may be called multiple times */
 
-  G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
-      dispose (object);
+  G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->dispose
+      (object);
 }
 
 void
@@ -244,12 +242,13 @@ gst_droidmediabuffertoglmemory_finalize (GObject * object)
 
   /* clean up object here */
 
-  G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
-      finalize (object);
+  G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->finalize
+      (object);
 }
 
 static void
-gst_droidmediabuffertoglmemory_set_context (GstElement * element, GstContext * context)
+gst_droidmediabuffertoglmemory_set_context (GstElement * element,
+    GstContext * context)
 {
   // Pretty much copied from gstglimagesink.c
 
@@ -257,17 +256,18 @@ gst_droidmediabuffertoglmemory_set_context (GstElement * element, GstContext * c
       GST_DROIDMEDIABUFFERTOGLMEMORY (element);
 
   gst_gl_handle_set_context (element, context,
-          &droidmediabuffertoglmemory->display,
-          &droidmediabuffertoglmemory->other_context
-  );
+      &droidmediabuffertoglmemory->display,
+      &droidmediabuffertoglmemory->other_context);
 
   // TODO: Is this needed?
-  #if 0
+#if 0
   if (droidmediabuffertoglmemory->display)
-    gst_gl_display_filter_gl_api (droidmediabuffertoglmemory->display, SUPPORTED_GL_APIS);
-  #endif
+    gst_gl_display_filter_gl_api (droidmediabuffertoglmemory->display,
+        SUPPORTED_GL_APIS);
+#endif
 
-  GST_ELEMENT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->set_context (element, context);
+  GST_ELEMENT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
+      set_context (element, context);
 }
 
 static GstCaps *
@@ -284,7 +284,7 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
     /* transform caps going upstream */
 
     // I don't want to deal with it. Pad template should be enough.
-    othercaps = gst_caps_new_any();
+    othercaps = gst_caps_new_any ();
   } else {
     /* transform caps going downstream */
 
@@ -292,16 +292,15 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
 
     // Replace the feature with GLMemory & set color-format to RGBA
     // Also set texture-target
-    GstCapsFeatures * glmemoryfeat = gst_caps_features_new(
-        GST_CAPS_FEATURE_MEMORY_GL_MEMORY,
-        NULL
-    );
-    gst_caps_set_features(othercaps, /* index (XXX: other index?) */ 0, glmemoryfeat);
-    
-    gst_caps_set_simple(othercaps,
-                            "format", G_TYPE_STRING, "RGBA",
-                            "texture-target", G_TYPE_STRING, "external-oes",
-                            NULL);
+    GstCapsFeatures *glmemoryfeat =
+        gst_caps_features_new (GST_CAPS_FEATURE_MEMORY_GL_MEMORY,
+        NULL);
+    gst_caps_set_features (othercaps, /* index (XXX: other index?) */ 0,
+        glmemoryfeat);
+
+    gst_caps_set_simple (othercaps,
+        "format", G_TYPE_STRING, "RGBA",
+        "texture-target", G_TYPE_STRING, "external-oes", NULL);
   }
 
   if (filter) {
@@ -466,8 +465,8 @@ gst_droidmediabuffertoglmemory_sink_event (GstBaseTransform * trans,
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "sink_event");
 
   return
-      GST_BASE_TRANSFORM_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
-      sink_event (trans, event);
+      GST_BASE_TRANSFORM_CLASS
+      (gst_droidmediabuffertoglmemory_parent_class)->sink_event (trans, event);
 }
 
 static gboolean
@@ -480,8 +479,8 @@ gst_droidmediabuffertoglmemory_src_event (GstBaseTransform * trans,
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "src_event");
 
   return
-      GST_BASE_TRANSFORM_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
-      src_event (trans, event);
+      GST_BASE_TRANSFORM_CLASS
+      (gst_droidmediabuffertoglmemory_parent_class)->src_event (trans, event);
 }
 
 static GstFlowReturn
