@@ -21,6 +21,7 @@
 #define _GST_DROIDMEDIABUFFERTOGLMEMORY_H_
 
 #include <gst/base/gstbasetransform.h>
+#include <gst/video/video-info.h>
 
 #include <gst/gl/gstgldisplay.h>
 #include <gst/gl/gstglcontext.h>
@@ -41,6 +42,8 @@ typedef struct _GstDroidmediabuffertoglmemoryClass
 struct _GstDroidmediabuffertoglmemory
 {
   GstBaseTransform base_droidmediabuffertoglmemory;
+
+  GstVideoInfo out_vinfo;
 
   GstGLDisplay *display;
   GstGLContext *context;

@@ -63,6 +63,9 @@ static void gst_droidmediabuffertoglmemory_set_context (GstElement * element,
 static GstCaps *gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform
     * trans, GstPadDirection direction, GstCaps * caps, GstCaps * filter);
 static gboolean
+gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
+    GstCaps * incaps, GstCaps * outcaps);
+static gboolean
 gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
     GstQuery * query);
 static gboolean gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform *
@@ -150,6 +153,8 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_context);
   base_transform_class->transform_caps =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_caps);
+  base_transform_class->set_caps =
+      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_caps);
   base_transform_class->decide_allocation =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_decide_allocation);
   base_transform_class->filter_meta =
@@ -318,6 +323,20 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
   } else {
     return othercaps;
   }
+}
+
+static gboolean
+gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
+    GstCaps * incaps, GstCaps * outcaps)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
+
+  if (!gst_video_info_from_caps (&droidmediabuffertoglmemory->out_vinfo, outcaps)) {
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 /* decide allocation query for output buffers */
@@ -636,15 +655,6 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
 
   // Majority of transformation is done here
 
-  // From gstgloverlaycompositor.c
-  GstVideoInfo vinfo;
-  GstVideoMeta *vmeta;
-
-  vmeta = gst_buffer_get_video_meta (input);
-  gst_video_info_set_format (&vinfo, vmeta->format, vmeta->width,
-      vmeta->height);
-  vinfo.stride[0] = vmeta->stride[0];
-
   GstMemory *droidmem =
       _get_droid_media_buffer_memory (droidmediabuffertoglmemory, input);
 
@@ -670,7 +680,7 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
       gst_gl_video_allocation_params_new_wrapped_gl_handle
       (droidmediabuffertoglmemory->context,
       /* parent alloc_params */ NULL,
-      &vinfo,
+      &droidmediabuffertoglmemory->out_vinfo,
       /* plane (???) */ 0,
       /* valign (???) */ NULL,
       GST_GL_TEXTURE_TARGET_2D, // GstGlMemoryEgl supports only this. XXX: will it work?
