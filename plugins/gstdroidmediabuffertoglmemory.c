@@ -101,7 +101,7 @@ GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE_WITH_FEATURES
         (GST_CAPS_FEATURE_MEMORY_GL_MEMORY, "{ RGBA }") // XXX: is "RGBA" correct?
-        ", texture-target = (string) { external-oes }"
+        ", texture-target = (string) { 2D }"
         )
     );
 
@@ -300,7 +300,7 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
     
     gst_caps_set_simple(othercaps,
                             "format", G_TYPE_STRING, "RGBA",
-                            "texture-target", G_TYPE_STRING, "external-oes",
+                            "texture-target", G_TYPE_STRING, "2D",
                             NULL);
   }
 
