@@ -315,6 +315,57 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
   }
 }
 
+/* decide allocation query for output buffers */
+static gboolean
+gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
+    GstQuery * query)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
+
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "decide_allocation");
+
+  return TRUE;
+}
+
+static gboolean
+gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform * trans,
+    GstQuery * query, GType api, const GstStructure * params)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
+
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "filter_meta");
+
+  return TRUE;
+}
+
+/* transform size */
+static gboolean
+gst_droidmediabuffertoglmemory_transform_size (GstBaseTransform * trans,
+    GstPadDirection direction, GstCaps * caps, gsize size, GstCaps * othercaps,
+    gsize * othersize)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
+
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform_size");
+
+  return TRUE;
+}
+
+static gboolean
+gst_droidmediabuffertoglmemory_get_unit_size (GstBaseTransform * trans,
+    GstCaps * caps, gsize * size)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
+
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "get_unit_size");
+
+  return TRUE;
+}
+
 static gboolean
 _ensure_gl_context (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory)
 {
@@ -378,57 +429,6 @@ context_error:
 
     return FALSE;
   }
-}
-
-/* decide allocation query for output buffers */
-static gboolean
-gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
-    GstQuery * query)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "decide_allocation");
-
-  return TRUE;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform * trans,
-    GstQuery * query, GType api, const GstStructure * params)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "filter_meta");
-
-  return TRUE;
-}
-
-/* transform size */
-static gboolean
-gst_droidmediabuffertoglmemory_transform_size (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps, gsize size, GstCaps * othercaps,
-    gsize * othersize)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform_size");
-
-  return TRUE;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_get_unit_size (GstBaseTransform * trans,
-    GstCaps * caps, gsize * size)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "get_unit_size");
-
-  return TRUE;
 }
 
 /* states */
