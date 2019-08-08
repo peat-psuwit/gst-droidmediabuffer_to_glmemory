@@ -697,6 +697,12 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
   gst_gl_allocation_params_free ((GstGLAllocationParams *) alloc_params);
   gst_object_unref (allocator);
 
+  if (!glmem) {
+    GST_ERROR_OBJECT(droidmediabuffertoglmemory,
+        "unable to allocate GstGLMemoryEGL wrapper");
+    return GST_FLOW_ERROR;
+  }
+
   *outbuf = gst_buffer_new ();
   gst_buffer_append_memory (*outbuf, GST_MEMORY_CAST (glmem));
 
