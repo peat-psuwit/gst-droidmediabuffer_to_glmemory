@@ -61,6 +61,9 @@ static void gst_droidmediabuffertoglmemory_set_context (GstElement * element,
 static GstCaps *gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform
     * trans, GstPadDirection direction, GstCaps * caps, GstCaps * filter);
 static gboolean
+gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
+    GstCaps * incaps, GstCaps * outcaps);
+static gboolean
 gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
     GstQuery * query);
 static gboolean gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform *
@@ -148,6 +151,8 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_context);
   base_transform_class->transform_caps =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_caps);
+  base_transform_class->set_caps =
+      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_caps);
   base_transform_class->decide_allocation =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_decide_allocation);
   base_transform_class->filter_meta =
@@ -313,6 +318,20 @@ gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform * trans,
   } else {
     return othercaps;
   }
+}
+
+static gboolean
+gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
+    GstCaps * incaps, GstCaps * outcaps)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
+
+  if (!gst_video_info_from_caps (&droidmediabuffertoglmemory->out_vinfo, outcaps)) {
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 /* decide allocation query for output buffers */
