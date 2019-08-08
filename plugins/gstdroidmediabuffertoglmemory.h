@@ -42,13 +42,13 @@ struct _GstDroidmediabuffertoglmemory
 {
   GstBaseTransform base_droidmediabuffertoglmemory;
 
-  GstGLDisplay * display;
-  GstGLContext * context;
-  GstGLContext * other_context;
+  GstGLDisplay *display;
+  GstGLContext *context;
+  GstGLContext *other_context;
 
-  EGLImageKHR (*eglCreateImageKHR) (EGLDisplay dpy, EGLContext ctx,
-    EGLenum target, EGLClientBuffer buffer, const EGLint * attrib_list);
-  EGLBoolean (*eglDestroyImageKHR) (EGLDisplay dpy, EGLImageKHR image);
+    EGLImageKHR (*eglCreateImageKHR) (EGLDisplay dpy, EGLContext ctx,
+      EGLenum target, EGLClientBuffer buffer, const EGLint * attrib_list);
+    EGLBoolean (*eglDestroyImageKHR) (EGLDisplay dpy, EGLImageKHR image);
 };
 
 struct _GstDroidmediabuffertoglmemoryClass
