@@ -138,6 +138,10 @@ gst_droidmediabuffertoglmemory_init (GstDroidmediabuffertoglmemory *
   droidmediabuffertoglmemory->display = NULL;
   droidmediabuffertoglmemory->context = NULL;
   droidmediabuffertoglmemory->other_context = NULL;
+
+  droidmediabuffertoglmemory->eglCreateImageKHR = NULL;
+  droidmediabuffertoglmemory->eglDestroyImageKHR = NULL;
+  droidmediabuffertoglmemory->glEGLImageTargetTexture2DOES = NULL;
 }
 
 static void
