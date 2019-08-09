@@ -276,8 +276,8 @@ gst_droidmediabuffertoglmemory_set_context (GstElement * element,
         SUPPORTED_GL_APIS);
 #endif
 
-  GST_ELEMENT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->
-      set_context (element, context);
+  GST_ELEMENT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->set_context
+      (element, context);
 }
 
 static GstCaps *
@@ -332,7 +332,8 @@ gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
   GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
-  if (!gst_video_info_from_caps (&droidmediabuffertoglmemory->out_vinfo, outcaps)) {
+  if (!gst_video_info_from_caps (&droidmediabuffertoglmemory->out_vinfo,
+          outcaps)) {
     return FALSE;
   }
 
@@ -577,7 +578,8 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
   GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
       GST_DROIDMEDIABUFFERTOGLMEMORY (user_data);
 
-  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "destroy GstEGLImage %p", image);
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "destroy GstEGLImage %p",
+      image);
 
   EGLDisplay egl_display = EGL_DEFAULT_DISPLAY;
   GstGLDisplayEGL *display_egl;
@@ -594,7 +596,7 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
       (EGLDisplay) gst_gl_display_get_handle (GST_GL_DISPLAY (display_egl));
   gst_object_unref (display_egl);
 
-  EGLImageKHR egl_image = (EGLImageKHR) gst_egl_image_get_image(image);
+  EGLImageKHR egl_image = (EGLImageKHR) gst_egl_image_get_image (image);
 
   if (!droidmediabuffertoglmemory->eglDestroyImageKHR (egl_display, egl_image)) {
     GST_WARNING_OBJECT (droidmediabuffertoglmemory,
@@ -706,7 +708,7 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
   gst_object_unref (allocator);
 
   if (!glmem) {
-    GST_ERROR_OBJECT(droidmediabuffertoglmemory,
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
         "unable to allocate GstGLMemoryEGL wrapper");
     return GST_FLOW_ERROR;
   }
