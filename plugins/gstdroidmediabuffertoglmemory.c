@@ -68,11 +68,6 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
 static GstFlowReturn gst_droidmediabuffertoglmemory_transform (GstBaseTransform
     * trans, GstBuffer * inbuf, GstBuffer * outbuf);
 
-enum
-{
-  PROP_0
-};
-
 /* pad templates */
 
 static GstStaticPadTemplate gst_droidmediabuffertoglmemory_src_template =
