@@ -635,8 +635,14 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
         gst_egl_get_error_string (eglGetError ()));
   }
 
+  if (!gst_gl_context_activate (droidmediabuffertoglmemory->context, TRUE)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "cannot activate this element's context. Do not handle sync fence");
+    return;
+  }
   // Create a new sync.
-  EGLSyncKHR newsync = droidmediabuffertoglmemory->eglCreateSyncKHR (egl_display,
+  EGLSyncKHR newsync =
+      droidmediabuffertoglmemory->eglCreateSyncKHR (egl_display,
       EGL_SYNC_FENCE_KHR, NULL);
 
   // Wait for an old sync, if any.
@@ -653,16 +659,21 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
       GST_WARNING_OBJECT (droidmediabuffertoglmemory,
           "timeout waiting for fence");
     } else {
-      GST_TRACE_OBJECT (droidmediabuffertoglmemory, "sync fence returned successfully");
+      GST_TRACE_OBJECT (droidmediabuffertoglmemory,
+          "sync fence returned successfully");
     }
 
     droidmediabuffertoglmemory->eglDestroySyncKHR (egl_display,
         droidmediabuffertoglmemory->sync);
   }
-
   // Keep the new fence.
   // TODO: find out if we're stoping.
   droidmediabuffertoglmemory->sync = newsync;
+
+  if (!gst_gl_context_activate (droidmediabuffertoglmemory->context, FALSE)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "cannot deactivate context");
+  }
 }
 
 static GstEGLImage *
