@@ -530,6 +530,26 @@ gst_droidmediabuffertoglmemory_stop (GstBaseTransform * trans)
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "stop");
 
+  // XXX: will this race with buffer destruction?
+  if (droidmediabuffertoglmemory->context) {
+    gst_object_unref (droidmediabuffertoglmemory->context);
+    droidmediabuffertoglmemory->context = NULL;
+  }
+
+  if (droidmediabuffertoglmemory->other_context) {
+    gst_object_unref (droidmediabuffertoglmemory->other_context);
+    droidmediabuffertoglmemory->other_context = NULL;
+  }
+
+  if (droidmediabuffertoglmemory->display) {
+    gst_object_unref (droidmediabuffertoglmemory->display);
+    droidmediabuffertoglmemory->display = NULL;
+  }
+  // Just in case they changes with context.
+  droidmediabuffertoglmemory->eglCreateImageKHR = NULL;
+  droidmediabuffertoglmemory->eglDestroyImageKHR = NULL;
+  droidmediabuffertoglmemory->glEGLImageTargetTexture2DOES = NULL;
+
   return TRUE;
 }
 
