@@ -392,10 +392,10 @@ _get_droid_media_buffer_memory (GstDroidmediabuffertoglmemory *
 {
   // Copied from droideglsink.c
   int x, num;
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory,
       "get droid media buffer memory");
   num = gst_buffer_n_memory (buffer);
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "examining %d memory items",
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "examining %d memory items",
       num);
   for (x = 0; x < num; x++) {
     GstMemory *mem = gst_buffer_peek_memory (buffer, x);
@@ -445,7 +445,7 @@ _create_egl_image (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory,
   EGLint eglImgAttrs[] =
       { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
 
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory,
       "creating EGLImage from DroidMediaBufferMemory");
 
   // This part comes from gsteglimage.c
@@ -562,7 +562,7 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
   GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "prepare_output_buffer");
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "prepare_output_buffer");
 
   GstMemory *droidmem =
       _get_droid_media_buffer_memory (droidmediabuffertoglmemory, input);
@@ -642,7 +642,7 @@ gst_droidmediabuffertoglmemory_transform (GstBaseTransform * trans,
   GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform");
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "transform");
 
   // Do nothing because prepare_output_buffer already transform the buffer,
   // but cannot be removed because it's required by GstBaseTransform.
