@@ -634,46 +634,6 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
         "eglDestroyImageKHR failed: %s. EGLImage may leak.",
         gst_egl_get_error_string (eglGetError ()));
   }
-
-  if (!gst_gl_context_activate (droidmediabuffertoglmemory->context, TRUE)) {
-    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
-        "cannot activate this element's context. Do not handle sync fence");
-    return;
-  }
-  // Create a new sync.
-  EGLSyncKHR newsync =
-      droidmediabuffertoglmemory->eglCreateSyncKHR (egl_display,
-      EGL_SYNC_FENCE_KHR, NULL);
-
-  // Wait for an old sync, if any.
-  if (droidmediabuffertoglmemory->sync != EGL_NO_SYNC_KHR) {
-    GST_TRACE_OBJECT (droidmediabuffertoglmemory, "waiting for sync fence");
-
-    EGLint result =
-        droidmediabuffertoglmemory->eglClientWaitSyncKHR (egl_display,
-        droidmediabuffertoglmemory->sync, 0, EGL_FOREVER_KHR);
-    if (result == EGL_FALSE) {
-      GST_WARNING_OBJECT (droidmediabuffertoglmemory,
-          "error 0x%x waiting for fence", eglGetError ());
-    } else if (result == EGL_TIMEOUT_EXPIRED_KHR) {
-      GST_WARNING_OBJECT (droidmediabuffertoglmemory,
-          "timeout waiting for fence");
-    } else {
-      GST_TRACE_OBJECT (droidmediabuffertoglmemory,
-          "sync fence returned successfully");
-    }
-
-    droidmediabuffertoglmemory->eglDestroySyncKHR (egl_display,
-        droidmediabuffertoglmemory->sync);
-  }
-  // Keep the new fence.
-  // TODO: find out if we're stoping.
-  droidmediabuffertoglmemory->sync = newsync;
-
-  if (!gst_gl_context_activate (droidmediabuffertoglmemory->context, FALSE)) {
-    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
-        "cannot deactivate context");
-  }
 }
 
 static GstEGLImage *
@@ -727,6 +687,83 @@ _create_egl_image (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory,
   return image_gst;
 }
 
+static void
+_handle_sync_fence_thread (GstGLContext * context, gpointer data)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (data);
+
+  GstGLDisplayEGL *display_egl =
+      gst_gl_display_egl_from_gl_display (droidmediabuffertoglmemory->display);
+  if (!display_egl) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "Failed to retrieve GstGLDisplayEGL from %" GST_PTR_FORMAT,
+        droidmediabuffertoglmemory->display);
+    return;
+  }
+  EGLDisplay egl_display =
+      (EGLDisplay) gst_gl_display_get_handle (GST_GL_DISPLAY (display_egl));
+  gst_object_unref (display_egl);
+
+  if (!gst_gl_context_activate (context, TRUE)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "cannot activate this element's context. Do not handle sync fence");
+    return;
+  }
+
+  // Create a new sync.
+  EGLSyncKHR newsync =
+      droidmediabuffertoglmemory->eglCreateSyncKHR (egl_display,
+      EGL_SYNC_FENCE_KHR, NULL);
+
+  // Wait for an old sync, if any.
+  if (droidmediabuffertoglmemory->sync != EGL_NO_SYNC_KHR) {
+    GST_TRACE_OBJECT (droidmediabuffertoglmemory, "waiting for sync fence");
+
+    EGLint result =
+        droidmediabuffertoglmemory->eglClientWaitSyncKHR (egl_display,
+        droidmediabuffertoglmemory->sync, 0, EGL_FOREVER_KHR);
+    if (result == EGL_FALSE) {
+      GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+          "error 0x%x waiting for fence", eglGetError ());
+    } else if (result == EGL_TIMEOUT_EXPIRED_KHR) {
+      GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+          "timeout waiting for fence");
+    } else {
+      GST_TRACE_OBJECT (droidmediabuffertoglmemory,
+          "sync fence returned successfully");
+    }
+
+    droidmediabuffertoglmemory->eglDestroySyncKHR (egl_display,
+        droidmediabuffertoglmemory->sync);
+  } else {
+    GST_TRACE_OBJECT (droidmediabuffertoglmemory,
+        "no previous fence to wait on");
+  }
+  // Keep the new fence.
+  // TODO: find out if we're stoping.
+  droidmediabuffertoglmemory->sync = newsync;
+
+  // XXX: is this right?
+  if (!gst_gl_context_activate (context, FALSE)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "cannot deactivate this element's context");
+  }
+}
+
+static void
+_on_texture_destroyed (gpointer data)
+{
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
+      GST_DROIDMEDIABUFFERTOGLMEMORY (data);
+
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory,
+      "a texture has been destroyed. Now create a fence to make Android happy.");
+
+  gst_gl_context_thread_add (droidmediabuffertoglmemory->context,
+      _handle_sync_fence_thread, droidmediabuffertoglmemory);
+}
+
 static GstFlowReturn
 gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
     GstBuffer * input, GstBuffer ** outbuf)
@@ -769,12 +806,14 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
       GST_GL_TEXTURE_TARGET_EXTERNAL_OES,
       /* tex_format */ GST_GL_RGBA,
       image,
-      image,                    /* Use destroy notification to unref the image. Hopefully this is correct. */
-      (GDestroyNotify) gst_egl_image_unref);
+      droidmediabuffertoglmemory,       /* Use destroy notification to unref the image. Hopefully this is correct. */
+      _on_texture_destroyed);
 
+  // GstGLMemoryEGL increase refcount to image after this command.
   GstGLBaseMemory *glmem = gst_gl_base_memory_alloc (allocator,
       (GstGLAllocationParams *) alloc_params);
 
+  gst_egl_image_unref (image);
   gst_gl_allocation_params_free ((GstGLAllocationParams *) alloc_params);
   gst_object_unref (allocator);
 
