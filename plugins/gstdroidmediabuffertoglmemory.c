@@ -36,9 +36,14 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstbasetransform.h>
+#include <gst/gl/gstglfuncs.h>
 #include <gst/gl/gstglutils.h>
 #include <gst/gl/gstglmemory.h>
+#include <gst/gl/egl/gstegl.h>
+#include <gst/gl/egl/gstgldisplay_egl.h>
 #include <gst/allocators/gstdroidmediabuffer.h>
+
+#include <GLES2/gl2ext.h>
 
 #include "gstdroidmediabuffertoglmemory.h"
 
@@ -474,6 +479,16 @@ _populate_egl_proc (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory)
     return FALSE;
   }
 
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->glEGLImageTargetTexture2DOES)) {
+    droidmediabuffertoglmemory->glEGLImageTargetTexture2DOES =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "glEGLImageTargetTexture2DOES");
+
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->glEGLImageTargetTexture2DOES)) {
+    return FALSE;
+  }
+
   return TRUE;
 }
 
@@ -547,6 +562,173 @@ gst_droidmediabuffertoglmemory_src_event (GstBaseTransform * trans,
       (gst_droidmediabuffertoglmemory_parent_class)->src_event (trans, event);
 }
 
+static GstMemory *
+_get_droid_media_buffer_memory (GstDroidmediabuffertoglmemory *
+    droidmediabuffertoglmemory, GstBuffer * buffer)
+{
+  // Copied from droideglsink.c
+  int x, num;
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+      "get droid media buffer memory");
+  num = gst_buffer_n_memory (buffer);
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "examining %d memory items",
+      num);
+  for (x = 0; x < num; x++) {
+    GstMemory *mem = gst_buffer_peek_memory (buffer, x);
+    if (mem && gst_memory_is_type (mem, GST_ALLOCATOR_DROID_MEDIA_BUFFER)) {
+      return mem;
+    }
+  }
+  return NULL;
+}
+
+static void
+_destroy_egl_image (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory,
+    EGLImageKHR * image)
+{
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "destroy EGLImage %p", image);
+
+  EGLDisplay egl_display = EGL_DEFAULT_DISPLAY;
+  GstGLDisplayEGL *display_egl;
+
+  display_egl =
+      gst_gl_display_egl_from_gl_display (droidmediabuffertoglmemory->display);
+  if (!display_egl) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "Failed to retrieve GstGLDisplayEGL from %" GST_PTR_FORMAT,
+        droidmediabuffertoglmemory->display);
+    return;
+  }
+  egl_display =
+      (EGLDisplay) gst_gl_display_get_handle (GST_GL_DISPLAY (display_egl));
+  gst_object_unref (display_egl);
+
+  if (!droidmediabuffertoglmemory->eglDestroyImageKHR (egl_display, image)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "eglDestroyImageKHR failed: %s. EGLImage may leak.",
+        gst_egl_get_error_string (eglGetError ()));
+  }
+}
+
+static EGLImageKHR
+_create_egl_image (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory,
+    GstMemory * droidmem)
+{
+  EGLDisplay egl_display = EGL_DEFAULT_DISPLAY;
+  EGLImageKHR img = EGL_NO_IMAGE_KHR;
+  GstGLDisplayEGL *display_egl;
+  // Copied from droideglsink.c. Not sure why.
+  EGLint eglImgAttrs[] =
+      { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE, EGL_NONE };
+
+  GST_DEBUG_OBJECT (droidmediabuffertoglmemory,
+      "creating EGLImage from DroidMediaBufferMemory");
+
+  // This part comes from gsteglimage.c
+  display_egl =
+      gst_gl_display_egl_from_gl_display (droidmediabuffertoglmemory->display);
+  if (!display_egl) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "Failed to retrieve GstGLDisplayEGL from %" GST_PTR_FORMAT,
+        droidmediabuffertoglmemory->display);
+    return NULL;
+  }
+  egl_display =
+      (EGLDisplay) gst_gl_display_get_handle (GST_GL_DISPLAY (display_egl));
+  gst_object_unref (display_egl);
+
+  img = droidmediabuffertoglmemory->eglCreateImageKHR (egl_display,
+      EGL_NO_CONTEXT,
+      EGL_NATIVE_BUFFER_ANDROID,
+      (EGLClientBuffer) gst_droid_media_buffer_memory_get_buffer (droidmem),
+      eglImgAttrs);
+
+  if (img == EGL_NO_IMAGE_KHR) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "eglCreateImageKHR failed: %s",
+        gst_egl_get_error_string (eglGetError ()));
+  }
+
+  GST_TRACE_OBJECT (droidmediabuffertoglmemory, "created (EGLImage) %p", img);
+
+  return img;
+}
+
+struct _WrappedTextureMetadata
+{
+  GstDroidmediabuffertoglmemory *self;
+  EGLImage image;
+  guint tex_id;
+};
+
+static void
+_create_texture_from_image_thread (GstGLContext * context, gpointer data)
+{
+  struct _WrappedTextureMetadata *metadata = data;
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory = metadata->self;
+
+  GstGLFuncs *gl = droidmediabuffertoglmemory->context->gl_vtable;
+
+  if (!gst_gl_context_activate (context, TRUE)) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "cannot activate this element's context.");
+    return;
+  }
+
+  gl->GenTextures ( /* n */ 1, &metadata->tex_id);
+  gl->BindTexture (GL_TEXTURE_EXTERNAL_OES, metadata->tex_id);
+
+  gl->TexParameterf (GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  gl->TexParameterf (GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  gl->TexParameteri (GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S,
+      GL_CLAMP_TO_EDGE);
+  gl->TexParameteri (GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T,
+      GL_CLAMP_TO_EDGE);
+
+  droidmediabuffertoglmemory->glEGLImageTargetTexture2DOES
+      (GL_TEXTURE_EXTERNAL_OES, metadata->image);
+
+  if (!gst_gl_context_activate (context, FALSE)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "cannot deactivate this element's context");
+  }
+
+  return;
+}
+
+static void
+_delete_texture_thread (GstGLContext * context, gpointer data)
+{
+  struct _WrappedTextureMetadata *metadata = data;
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory = metadata->self;
+  GstGLFuncs *gl = droidmediabuffertoglmemory->context->gl_vtable;
+
+  if (!gst_gl_context_activate (context, TRUE)) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "cannot activate this element's context.");
+    return;
+  }
+
+  gl->DeleteTextures ( /* n */ 1, &metadata->tex_id);
+
+  if (!gst_gl_context_activate (droidmediabuffertoglmemory->context, FALSE)) {
+    GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+        "cannot deactivate this element's context");
+  }
+}
+
+static void
+_on_glmemory_destroy (gpointer data)
+{
+  struct _WrappedTextureMetadata *metadata = data;
+  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory = metadata->self;
+
+  _destroy_egl_image (droidmediabuffertoglmemory, metadata->image);
+
+  gst_gl_context_thread_add (droidmediabuffertoglmemory->context,
+      _delete_texture_thread, metadata);
+}
+
 static GstFlowReturn
 gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
     GstBuffer * input, GstBuffer ** outbuf)
@@ -555,6 +737,73 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
       GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "prepare_output_buffer");
+
+  GstMemory *droidmem =
+      _get_droid_media_buffer_memory (droidmediabuffertoglmemory, input);
+
+  if (!droidmem) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "buffer is not DroidMediaBufferMemory");
+    return GST_FLOW_NOT_NEGOTIATED;
+  }
+
+  EGLImage image = _create_egl_image (droidmediabuffertoglmemory, droidmem);
+
+  if (image == EGL_NO_IMAGE_KHR) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to create GstEGLImage.");
+    return GST_FLOW_ERROR;
+  }
+
+  struct _WrappedTextureMetadata *metadata =
+      g_new (struct _WrappedTextureMetadata, 1);
+  metadata->self = droidmediabuffertoglmemory;
+  metadata->image = image;
+  metadata->tex_id = 0;
+
+  gst_gl_context_thread_add (droidmediabuffertoglmemory->context,
+      _create_texture_from_image_thread, metadata);
+
+  if (!metadata->tex_id) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to create texture from image.");
+    _destroy_egl_image (droidmediabuffertoglmemory, image);
+    g_free (metadata);
+    return GST_FLOW_ERROR;
+  }
+
+  GstGLBaseMemoryAllocator *allocator =
+      GST_GL_BASE_MEMORY_ALLOCATOR (gst_allocator_find
+      (GST_GL_MEMORY_ALLOCATOR_NAME));
+
+  GstGLVideoAllocationParams *alloc_params =
+      gst_gl_video_allocation_params_new_wrapped_gl_handle
+      (droidmediabuffertoglmemory->context,
+      /* parent alloc_params */ NULL,
+      &droidmediabuffertoglmemory->out_vinfo,
+      /* plane (???) */ 0,
+      /* valign (???) */ NULL,
+      GST_GL_TEXTURE_TARGET_EXTERNAL_OES,
+      /* tex_format (???) */ GST_GL_RGBA,
+      GUINT_TO_POINTER (metadata->tex_id),
+      metadata,
+      _on_glmemory_destroy);
+
+  GstGLBaseMemory *glmem = gst_gl_base_memory_alloc (allocator,
+      (GstGLAllocationParams *) alloc_params);
+
+  gst_gl_allocation_params_free ((GstGLAllocationParams *) alloc_params);
+  gst_object_unref (allocator);
+
+  if (!glmem) {
+    GST_ERROR_OBJECT (droidmediabuffertoglmemory,
+        "unable to allocate GstGLMemoryEGL wrapper");
+    g_free (metadata);
+    return GST_FLOW_ERROR;
+  }
+
+  *outbuf = gst_buffer_new ();
+  gst_buffer_append_memory (*outbuf, GST_MEMORY_CAST (glmem));
 
   return GST_FLOW_OK;
 }

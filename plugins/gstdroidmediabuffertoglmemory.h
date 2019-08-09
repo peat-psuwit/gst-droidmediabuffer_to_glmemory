@@ -26,6 +26,8 @@
 #include <gst/gl/gstgldisplay.h>
 #include <gst/gl/gstglcontext.h>
 
+#include <GL/gl.h>
+#include <GL/glext.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
@@ -52,6 +54,7 @@ struct _GstDroidmediabuffertoglmemory
     EGLImageKHR (*eglCreateImageKHR) (EGLDisplay dpy, EGLContext ctx,
       EGLenum target, EGLClientBuffer buffer, const EGLint * attrib_list);
     EGLBoolean (*eglDestroyImageKHR) (EGLDisplay dpy, EGLImageKHR image);
+  void (*glEGLImageTargetTexture2DOES) (GLenum target, GLeglImageOES image);
 };
 
 struct _GstDroidmediabuffertoglmemoryClass
