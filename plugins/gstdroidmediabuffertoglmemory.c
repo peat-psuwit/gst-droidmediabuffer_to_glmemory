@@ -52,14 +52,6 @@ GST_DEBUG_CATEGORY_STATIC (gst_droidmediabuffertoglmemory_debug_category);
 
 /* prototypes */
 
-
-static void gst_droidmediabuffertoglmemory_set_property (GObject * object,
-    guint property_id, const GValue * value, GParamSpec * pspec);
-static void gst_droidmediabuffertoglmemory_get_property (GObject * object,
-    guint property_id, GValue * value, GParamSpec * pspec);
-static void gst_droidmediabuffertoglmemory_dispose (GObject * object);
-static void gst_droidmediabuffertoglmemory_finalize (GObject * object);
-
 static void gst_droidmediabuffertoglmemory_set_context (GstElement * element,
     GstContext * context);
 
@@ -68,31 +60,11 @@ static GstCaps *gst_droidmediabuffertoglmemory_transform_caps (GstBaseTransform
 static gboolean
 gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
     GstCaps * incaps, GstCaps * outcaps);
-static gboolean
-gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
-    GstQuery * query);
-static gboolean gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform *
-    trans, GstQuery * query, GType api, const GstStructure * params);
-static gboolean gst_droidmediabuffertoglmemory_transform_size (GstBaseTransform
-    * trans, GstPadDirection direction, GstCaps * caps, gsize size,
-    GstCaps * othercaps, gsize * othersize);
-static gboolean gst_droidmediabuffertoglmemory_get_unit_size (GstBaseTransform *
-    trans, GstCaps * caps, gsize * size);
 static gboolean gst_droidmediabuffertoglmemory_start (GstBaseTransform * trans);
 static gboolean gst_droidmediabuffertoglmemory_stop (GstBaseTransform * trans);
-static gboolean gst_droidmediabuffertoglmemory_sink_event (GstBaseTransform *
-    trans, GstEvent * event);
-static gboolean gst_droidmediabuffertoglmemory_src_event (GstBaseTransform *
-    trans, GstEvent * event);
 static GstFlowReturn
 gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
     GstBuffer * input, GstBuffer ** outbuf);
-static gboolean gst_droidmediabuffertoglmemory_copy_metadata (GstBaseTransform *
-    trans, GstBuffer * input, GstBuffer * outbuf);
-static gboolean gst_droidmediabuffertoglmemory_transform_meta (GstBaseTransform
-    * trans, GstBuffer * outbuf, GstMeta * meta, GstBuffer * inbuf);
-static void gst_droidmediabuffertoglmemory_before_transform (GstBaseTransform *
-    trans, GstBuffer * buffer);
 static GstFlowReturn gst_droidmediabuffertoglmemory_transform (GstBaseTransform
     * trans, GstBuffer * inbuf, GstBuffer * outbuf);
 
@@ -132,7 +104,6 @@ static void
 gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
     klass)
 {
-  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = (GstElementClass *) klass;
   GstBaseTransformClass *base_transform_class =
       GST_BASE_TRANSFORM_CLASS (klass);
@@ -148,40 +119,18 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
       "FIXME Long name", "Generic", "FIXME Description",
       "FIXME <fixme@example.com>");
 
-  gobject_class->set_property = gst_droidmediabuffertoglmemory_set_property;
-  gobject_class->get_property = gst_droidmediabuffertoglmemory_get_property;
-  gobject_class->dispose = gst_droidmediabuffertoglmemory_dispose;
-  gobject_class->finalize = gst_droidmediabuffertoglmemory_finalize;
   gstelement_class->set_context =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_context);
   base_transform_class->transform_caps =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_caps);
   base_transform_class->set_caps =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_caps);
-  base_transform_class->decide_allocation =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_decide_allocation);
-  base_transform_class->filter_meta =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_filter_meta);
-  base_transform_class->transform_size =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_size);
-  base_transform_class->get_unit_size =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_get_unit_size);
   base_transform_class->start =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_start);
   base_transform_class->stop =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_stop);
-  base_transform_class->sink_event =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_sink_event);
-  base_transform_class->src_event =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_src_event);
   base_transform_class->prepare_output_buffer =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_prepare_output_buffer);
-  base_transform_class->copy_metadata =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_copy_metadata);
-  base_transform_class->transform_meta =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform_meta);
-  base_transform_class->before_transform =
-      GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_before_transform);
   base_transform_class->transform =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_transform);
 
@@ -194,66 +143,6 @@ gst_droidmediabuffertoglmemory_init (GstDroidmediabuffertoglmemory *
   droidmediabuffertoglmemory->display = NULL;
   droidmediabuffertoglmemory->context = NULL;
   droidmediabuffertoglmemory->other_context = NULL;
-}
-
-void
-gst_droidmediabuffertoglmemory_set_property (GObject * object,
-    guint property_id, const GValue * value, GParamSpec * pspec)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (object);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "set_property");
-
-  switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
-  }
-}
-
-void
-gst_droidmediabuffertoglmemory_get_property (GObject * object,
-    guint property_id, GValue * value, GParamSpec * pspec)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (object);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "get_property");
-
-  switch (property_id) {
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
-      break;
-  }
-}
-
-void
-gst_droidmediabuffertoglmemory_dispose (GObject * object)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (object);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "dispose");
-
-  /* clean up as possible.  may be called multiple times */
-
-  G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->dispose
-      (object);
-}
-
-void
-gst_droidmediabuffertoglmemory_finalize (GObject * object)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (object);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "finalize");
-
-  /* clean up object here */
-
-  G_OBJECT_CLASS (gst_droidmediabuffertoglmemory_parent_class)->finalize
-      (object);
 }
 
 static void
@@ -336,57 +225,6 @@ gst_droidmediabuffertoglmemory_set_caps (GstBaseTransform * trans,
           outcaps)) {
     return FALSE;
   }
-
-  return TRUE;
-}
-
-/* decide allocation query for output buffers */
-static gboolean
-gst_droidmediabuffertoglmemory_decide_allocation (GstBaseTransform * trans,
-    GstQuery * query)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "decide_allocation");
-
-  return TRUE;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_filter_meta (GstBaseTransform * trans,
-    GstQuery * query, GType api, const GstStructure * params)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "filter_meta");
-
-  return TRUE;
-}
-
-/* transform size */
-static gboolean
-gst_droidmediabuffertoglmemory_transform_size (GstBaseTransform * trans,
-    GstPadDirection direction, GstCaps * caps, gsize size, GstCaps * othercaps,
-    gsize * othersize)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform_size");
-
-  return TRUE;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_get_unit_size (GstBaseTransform * trans,
-    GstCaps * caps, gsize * size)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "get_unit_size");
 
   return TRUE;
 }
@@ -551,35 +389,6 @@ gst_droidmediabuffertoglmemory_stop (GstBaseTransform * trans)
   droidmediabuffertoglmemory->glEGLImageTargetTexture2DOES = NULL;
 
   return TRUE;
-}
-
-/* sink and src pad event handlers */
-static gboolean
-gst_droidmediabuffertoglmemory_sink_event (GstBaseTransform * trans,
-    GstEvent * event)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "sink_event");
-
-  return
-      GST_BASE_TRANSFORM_CLASS
-      (gst_droidmediabuffertoglmemory_parent_class)->sink_event (trans, event);
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_src_event (GstBaseTransform * trans,
-    GstEvent * event)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "src_event");
-
-  return
-      GST_BASE_TRANSFORM_CLASS
-      (gst_droidmediabuffertoglmemory_parent_class)->src_event (trans, event);
 }
 
 static GstMemory *
@@ -828,42 +637,6 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
   gst_buffer_append_memory (*outbuf, GST_MEMORY_CAST (glmem));
 
   return GST_FLOW_OK;
-}
-
-/* metadata */
-static gboolean
-gst_droidmediabuffertoglmemory_copy_metadata (GstBaseTransform * trans,
-    GstBuffer * input, GstBuffer * outbuf)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "copy_metadata");
-
-  return TRUE;
-}
-
-static gboolean
-gst_droidmediabuffertoglmemory_transform_meta (GstBaseTransform * trans,
-    GstBuffer * outbuf, GstMeta * meta, GstBuffer * inbuf)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform_meta");
-
-  return TRUE;
-}
-
-static void
-gst_droidmediabuffertoglmemory_before_transform (GstBaseTransform * trans,
-    GstBuffer * buffer)
-{
-  GstDroidmediabuffertoglmemory *droidmediabuffertoglmemory =
-      GST_DROIDMEDIABUFFERTOGLMEMORY (trans);
-
-  GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "before_transform");
-
 }
 
 /* transform */
