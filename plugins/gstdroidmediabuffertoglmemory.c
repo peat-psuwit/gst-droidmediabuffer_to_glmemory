@@ -644,5 +644,8 @@ gst_droidmediabuffertoglmemory_transform (GstBaseTransform * trans,
 
   GST_DEBUG_OBJECT (droidmediabuffertoglmemory, "transform");
 
+  // Do nothing because prepare_output_buffer already transform the buffer,
+  // but cannot be removed because it's required by GstBaseTransform.
+
   return GST_FLOW_OK;
 }
