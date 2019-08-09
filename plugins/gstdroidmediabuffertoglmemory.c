@@ -747,6 +747,8 @@ _on_glmemory_destroy (gpointer data)
 
   gst_gl_context_thread_add (droidmediabuffertoglmemory->context,
       _delete_texture_thread, metadata);
+
+  g_free (metadata);
 }
 
 static GstFlowReturn
