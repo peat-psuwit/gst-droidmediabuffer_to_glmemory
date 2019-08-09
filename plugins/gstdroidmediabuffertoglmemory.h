@@ -49,9 +49,17 @@ struct _GstDroidmediabuffertoglmemory
   GstGLContext *context;
   GstGLContext *other_context;
 
+  EGLSyncKHR sync;
+
     EGLImageKHR (*eglCreateImageKHR) (EGLDisplay dpy, EGLContext ctx,
       EGLenum target, EGLClientBuffer buffer, const EGLint * attrib_list);
     EGLBoolean (*eglDestroyImageKHR) (EGLDisplay dpy, EGLImageKHR image);
+
+    EGLSyncKHR (*eglCreateSyncKHR) (EGLDisplay dpy, EGLenum type,
+      const EGLint * attrib_list);
+    EGLBoolean (*eglDestroySyncKHR) (EGLDisplay dpy, EGLSyncKHR sync);
+    EGLint (*eglClientWaitSyncKHR) (EGLDisplay dpy, EGLSyncKHR sync,
+      EGLint flags, EGLTimeKHR timeout);
 };
 
 struct _GstDroidmediabuffertoglmemoryClass

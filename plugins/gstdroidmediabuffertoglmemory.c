@@ -192,8 +192,13 @@ gst_droidmediabuffertoglmemory_init (GstDroidmediabuffertoglmemory *
   droidmediabuffertoglmemory->context = NULL;
   droidmediabuffertoglmemory->other_context = NULL;
 
+  droidmediabuffertoglmemory->sync = EGL_NO_SYNC_KHR;
+
   droidmediabuffertoglmemory->eglCreateImageKHR = NULL;
   droidmediabuffertoglmemory->eglDestroyImageKHR = NULL;
+  droidmediabuffertoglmemory->eglCreateSyncKHR = NULL;
+  droidmediabuffertoglmemory->eglDestroySyncKHR = NULL;
+  droidmediabuffertoglmemory->eglClientWaitSyncKHR = NULL;
 }
 
 void
@@ -473,9 +478,35 @@ _populate_egl_proc (GstDroidmediabuffertoglmemory * droidmediabuffertoglmemory)
     droidmediabuffertoglmemory->eglDestroyImageKHR =
         gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
         "eglDestroyImageKHR");
-
   }
   if (G_UNLIKELY (!droidmediabuffertoglmemory->eglDestroyImageKHR)) {
+    return FALSE;
+  }
+
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglCreateSyncKHR)) {
+    droidmediabuffertoglmemory->eglCreateSyncKHR =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "eglCreateSyncKHR");
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglCreateSyncKHR)) {
+    return FALSE;
+  }
+
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglDestroySyncKHR)) {
+    droidmediabuffertoglmemory->eglDestroySyncKHR =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "eglDestroySyncKHR");
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglDestroySyncKHR)) {
+    return FALSE;
+  }
+
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglClientWaitSyncKHR)) {
+    droidmediabuffertoglmemory->eglClientWaitSyncKHR =
+        gst_gl_context_get_proc_address (droidmediabuffertoglmemory->context,
+        "eglClientWaitSyncKHR");
+  }
+  if (G_UNLIKELY (!droidmediabuffertoglmemory->eglClientWaitSyncKHR)) {
     return FALSE;
   }
 
@@ -603,6 +634,35 @@ _destroy_egl_image (GstEGLImage * image, gpointer user_data)
         "eglDestroyImageKHR failed: %s. EGLImage may leak.",
         gst_egl_get_error_string (eglGetError ()));
   }
+
+  // Create a new sync.
+  EGLSyncKHR newsync = droidmediabuffertoglmemory->eglCreateSyncKHR (egl_display,
+      EGL_SYNC_FENCE_KHR, NULL);
+
+  // Wait for an old sync, if any.
+  if (droidmediabuffertoglmemory->sync != EGL_NO_SYNC_KHR) {
+    GST_TRACE_OBJECT (droidmediabuffertoglmemory, "waiting for sync fence");
+
+    EGLint result =
+        droidmediabuffertoglmemory->eglClientWaitSyncKHR (egl_display,
+        droidmediabuffertoglmemory->sync, 0, EGL_FOREVER_KHR);
+    if (result == EGL_FALSE) {
+      GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+          "error 0x%x waiting for fence", eglGetError ());
+    } else if (result == EGL_TIMEOUT_EXPIRED_KHR) {
+      GST_WARNING_OBJECT (droidmediabuffertoglmemory,
+          "timeout waiting for fence");
+    } else {
+      GST_TRACE_OBJECT (droidmediabuffertoglmemory, "sync fence returned successfully");
+    }
+
+    droidmediabuffertoglmemory->eglDestroySyncKHR (egl_display,
+        droidmediabuffertoglmemory->sync);
+  }
+
+  // Keep the new fence.
+  // TODO: find out if we're stoping.
+  droidmediabuffertoglmemory->sync = newsync;
 }
 
 static GstEGLImage *
