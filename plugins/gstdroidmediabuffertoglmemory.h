@@ -1,5 +1,5 @@
-/* GStreamer
- * Copyright (C) 2019 FIXME <fixme@example.com>
+/* gst-droidmediabuffer_to_glmemory
+ * Copyright (C) 2019 Ratchanan Srirattanamet <peathot@hotmail.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
