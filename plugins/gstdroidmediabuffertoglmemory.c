@@ -76,14 +76,37 @@
 /**
  * SECTION:element-gstdroidmediabuffertoglmemory
  *
- * The droidmediabuffertoglmemory element does FIXME stuff.
+ * The droidmediabuffertoglmemory element convert DroidMediaBuffer into GLMemory
+ * consumable by various system in GStreamer by creating an EGLImage and target
+ * it to a texture.
+ * 
+ * DroidMediaBuffer is a memory type from gst-droid that wraps Android's native
+ * GPU buffer. This is being used for hardware-accelarated video decoding (by
+ * droidvdec element) and camera preview (by droidcamsrc element).
+ * 
+ * Originally, DroidMediaBuffer is designed to be used by gst-droid's
+ * droideglsink only. The sink works by creating an EGLImage for each buffer,
+ * provide it to an application, and the application is requied to target the
+ * image to its texture.
+ * 
+ * However, there's nothing that prevents doing all of that in a single
+ * GStreamer element, and then pass the texture on to another part of GStreamer
+ * inside a standard (wrapped) GLMemory. This is essentially what this element
+ * does, enabling the use of various Gstreamer's OpenGL facility without special
+ * knowledge of how DroidMediaBuffer works. Neat, huh?
  *
  * <refsect2>
  * <title>Example launch line</title>
  * |[
- * gst-launch-1.0 -v fakesrc ! droidmediabuffertoglmemory ! FIXME ! fakesink
+ * gst-launch-1.0 -v droidcamsrc camera-device=0 ! droidmediabuffertoglmemory ! \
+ *     glimagesink rotate-method=automatic
  * ]|
- * FIXME Describe what the pipeline does.
+ * This pipeline opens the primary camera (usually the back one) for preview.
+ * Without droidmediabuffertoglmemory, droidcamsrc has to download the preview
+ * image to the main memory, performing (maybe) color space conversion, and then
+ * upload the image to GPU memory for display. With this element, the preview
+ * image stays in the GPU, only transfer to a texture before being displayed by
+ * GPU.
  * </refsect2>
  */
 
