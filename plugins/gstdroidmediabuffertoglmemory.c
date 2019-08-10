@@ -150,7 +150,7 @@ G_DEFINE_TYPE_WITH_CODE (GstDroidmediabuffertoglmemory,
     gst_droidmediabuffertoglmemory, GST_TYPE_BASE_TRANSFORM,
     GST_DEBUG_CATEGORY_INIT (gst_droidmediabuffertoglmemory_debug_category,
         "droidmediabuffertoglmemory", 0,
-        "debug category for droidmediabuffertoglmemory element"));
+        "DroidMediaBuffer to GLMemory converter"));
 
 static void
 gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
@@ -168,8 +168,10 @@ gst_droidmediabuffertoglmemory_class_init (GstDroidmediabuffertoglmemoryClass *
       &gst_droidmediabuffertoglmemory_sink_template);
 
   gst_element_class_set_static_metadata (GST_ELEMENT_CLASS (klass),
-      "FIXME Long name", "Generic", "FIXME Description",
-      "FIXME <fixme@example.com>");
+      "DroidMediaBuffer to GLMemory converter", "Filter/Video",
+      "Convert DroidMediaBuffer into GLMemory consumable by various system in "
+      "GStreamer by creating an EGLImage and target it to a texture.",
+      "Ratchanan Srirattanamet <peathot@hotmail.com>");
 
   gstelement_class->set_context =
       GST_DEBUG_FUNCPTR (gst_droidmediabuffertoglmemory_set_context);

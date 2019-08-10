@@ -55,5 +55,9 @@ plugin_init (GstPlugin * plugin)
   return TRUE;
 }
 
-GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR, droidmediabuffertoglmemory, "FIXME Template plugin", plugin_init, VERSION, "LGPL",     /* FIXME */
-    "GStreamer", "http://gstreamer.net/")
+GST_PLUGIN_DEFINE (GST_VERSION_MAJOR, GST_VERSION_MINOR,
+    droidmediabuffertoglmemory,
+    "Convert DroidMediaBuffer into GLMemory consumable by various system in "
+    "GStreamer by creating an EGLImage and target it to a texture.",
+    plugin_init, VERSION, "LGPL", "droidmediabuffertoglmemory",
+    "https://github.com/peat-psuwit/gst-droidmediabuffer_to_glmemory");
