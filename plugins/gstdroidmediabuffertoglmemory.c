@@ -689,7 +689,7 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
       (GST_GL_MEMORY_ALLOCATOR_NAME));
 
   GstGLVideoAllocationParams *alloc_params =
-      gst_gl_video_allocation_params_new_wrapped_gl_handle
+      gst_gl_video_allocation_params_new_wrapped_texture
       (droidmediabuffertoglmemory->context,
       /* parent alloc_params */ NULL,
       &droidmediabuffertoglmemory->out_vinfo,
@@ -697,7 +697,7 @@ gst_droidmediabuffertoglmemory_prepare_output_buffer (GstBaseTransform * trans,
       /* valign (???) */ NULL,
       GST_GL_TEXTURE_TARGET_EXTERNAL_OES,
       /* tex_format (???) */ GST_GL_RGBA,
-      GUINT_TO_POINTER (metadata->tex_id),
+      metadata->tex_id,
       metadata,
       _on_glmemory_destroy);
 
