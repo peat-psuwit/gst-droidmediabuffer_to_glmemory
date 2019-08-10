@@ -1,3 +1,6 @@
+gst-droidmediabuffer_to_glmemory
+================================
+
 The droidmediabuffertoglmemory element convert DroidMediaBuffer into GLMemory
 consumable by various system in GStreamer by creating an EGLImage and target
 it to a texture.
@@ -16,3 +19,11 @@ GStreamer element, and then pass the texture on to another part of GStreamer
 inside a standard (wrapped) GLMemory. This is essentially what this element
 does, enabling the use of various Gstreamer's OpenGL facility without special
 knowledge of how DroidMediaBuffer works. Neat, huh?
+
+
+About the branches
+------------------
+
+The master branch contains the currently working version of the plugin. However,
+before reaching this, I've tried 2 methods that doesn't work. For anyone
+interested, I've uploaded them into branch method1(-sync) and method2.
