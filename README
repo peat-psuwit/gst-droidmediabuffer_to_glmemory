@@ -1,1 +1,18 @@
-README for your project.
+The droidmediabuffertoglmemory element convert DroidMediaBuffer into GLMemory
+consumable by various system in GStreamer by creating an EGLImage and target
+it to a texture.
+
+DroidMediaBuffer is a memory type from gst-droid that wraps Android's native
+GPU buffer. This is being used for hardware-accelarated video decoding (by
+droidvdec element) and camera preview (by droidcamsrc element).
+
+Originally, DroidMediaBuffer is designed to be used by gst-droid's
+droideglsink only. The sink works by creating an EGLImage for each buffer,
+provide it to an application, and the application is requied to target the
+image to its texture.
+
+However, there's nothing that prevents doing all of that in a single
+GStreamer element, and then pass the texture on to another part of GStreamer
+inside a standard (wrapped) GLMemory. This is essentially what this element
+does, enabling the use of various Gstreamer's OpenGL facility without special
+knowledge of how DroidMediaBuffer works. Neat, huh?
